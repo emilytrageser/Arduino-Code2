@@ -65,7 +65,12 @@ int ECPin= A0;
 int ECGround=A1;
 int ECPower =A4;
  
- 
+ int ThermistorPin = 5;
+int VVo;
+float RR1 = 10000;
+float logRR2, RR2, TT, TTc, TTf;
+float c1 = 1.009249522e-03, c2 = 2.378405444e-04, c3 = 2.019202697e-07;
+
 //*********** Converting to ppm [Learn to use EC it is much better**************//
 // Hana      [USA]        PPMconverion:  0.5
 // Eutech    [EU]          PPMconversion:  0.64
@@ -73,7 +78,7 @@ int ECPower =A4;
 // Why didnt anyone standardise this?
  
  
-float PPMconversion=0.7;
+float PPMconversion=0.5;
  
  
 //*************Compensating for temperature ************************************//
@@ -87,16 +92,16 @@ float TemperatureCoef = 0.019; //this changes depending on what chemical we are 
 //********************** Cell Constant For Ec Measurements *********************//
 //Mine was around 2.9 with plugs being a standard size they should all be around the same
 //But If you get bad readings you can use the calibration script and fluid to get a better estimate for K
-float K=2.88;
+float K=.24;
  
  
  
- 
+ //
 //************ Temp Probe Related *********************************************//
-#define ONE_WIRE_BUS 10          // Data wire For Temp Probe is plugged into pin 10 on the Arduino
-const int TempProbePossitive =8;  //Temp Probe power connected to pin 9
-const int TempProbeNegative=9;    //Temp Probe Negative connected to pin 8
- 
+#define ONE_WIRE_BUS 5          // Data wire For Temp Probe is plugged into pin 10 on the Arduino
+//const int TempProbePossitive =8;  //Temp Probe power connected to pin 9
+//const int TempProbeNegative=9;    //Temp Probe Negative connected to pin 8
+
  
  
  
@@ -126,10 +131,10 @@ float buffer=0;
 void setup()
 {
   Serial.begin(9600);
-  pinMode(TempProbeNegative , OUTPUT ); //seting ground pin as output for tmp probe
-  digitalWrite(TempProbeNegative , LOW );//Seting it to ground so it can sink current
-  pinMode(TempProbePossitive , OUTPUT );//ditto but for positive
-  digitalWrite(TempProbePossitive , HIGH );
+  //pinMode(TempProbeNegative , OUTPUT ); //seting ground pin as output for tmp probe
+  //digitalWrite(TempProbeNegative , LOW );//Seting it to ground so it can sink current
+  //pinMode(TempProbePossitive , OUTPUT );//ditto but for positive
+  //digitalWrite(TempProbePossitive , HIGH );
   pinMode(ECPin,INPUT);
   pinMode(ECPower,OUTPUT);//Setting pin for sourcing current
   pinMode(ECGround,OUTPUT);//setting pin for sinking current
@@ -183,10 +188,26 @@ void GetEC(){
  
  
 //*********Reading Temperature Of Solution *******************//
-sensors.requestTemperatures();// Send the command to get temperatures
-Temperature=sensors.getTempCByIndex(0); //Stores Value in Variable
+//sensors.requestTemperatures();// Send the command to get temperatures
+//Temperature=sensors.getTempCByIndex(0); //Stores Value in Variable
  
  
+ VVo = analogRead(ThermistorPin);
+ RR2 = RR1 * (1023.0 / (float)VVo - 1.0);
+ logRR2 = log(RR2);
+ TT = (1.0 / (c1 + c2*logRR2 + c3*logRR2*logRR2*logRR2));
+ TTc = TT - 273.15;
+ TTf = (TTc * 9.0)/ 5.0 + 32.0; 
+
+ Serial.print("Temperature: "); 
+ Serial.print(TTf);
+ Serial.print(" F; ");
+ Serial.print(TTc);
+ Serial.println(" C");   
+ Temperature=TTc;
+ //delay(1000);
+
+
  
  
 //************Estimates Resistance of Liquid ****************//
